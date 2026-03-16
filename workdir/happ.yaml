@@ -1,0 +1,40 @@
+manifest_version: '0'
+name: poi
+description: null
+roles:
+- name: registry
+  provisioning:
+    strategy: create
+    deferred: false
+  dna:
+    path: ../dnas/registry/workdir/registry.dna
+    modifiers:
+      network_seed: null
+      properties: null
+    installed_hash: null
+    clone_limit: 0
+- name: coordination
+  provisioning:
+    strategy: create
+    deferred: false
+  dna:
+    path: ../dnas/coordination/workdir/coordination.dna
+    modifiers:
+      network_seed: null
+      properties: null
+    installed_hash: null
+    clone_limit: 0
+- name: mutual_credit
+  provisioning:
+    strategy: create
+    deferred: false
+  dna:
+    path: ../dnas/mutual_credit/workdir/mutual_credit.dna
+    modifiers:
+      network_seed: null
+      properties: null
+    installed_hash: null
+    clone_limit: 0
+allow_deferred_memproofs: false
+bootstrap_url: null
+signal_url: null
