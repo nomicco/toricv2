@@ -168,6 +168,36 @@ fn submit_attestation_to_registry(
     }
 }
 
+fn notify_mutual_credit(
+    attestation_hash: ActionHash,
+    registry_cell_id: CellId,
+) -> ExternResult<()> {
+    #[derive(Serialize, Deserialize, Debug)]
+    struct AttestationNotification {
+        attestation_hash: ActionHash,
+    }
+
+    // The Mutual Credit DNA shares the same agent key
+    // We derive its cell ID from the registry cell ID's agent
+    let agent = registry_cell_id.agent_pubkey().clone();
+
+    // Get mutual credit DNA hash from conductor info
+    // For now use a placeholder — in production this comes
+    // from the happ manifest role lookup
+    let result = call(
+        CallTargetCell::Local,
+        ZomeName::from("mutual_credit"),
+        FunctionName::from("on_attestation_created"),
+        None,
+        AttestationNotification { attestation_hash },
+    )?;
+
+    match result {
+        ZomeCallResponse::Ok(_) => Ok(()),
+        _ => Ok(()), // best effort — don't fail quorum if MC bridge fails
+    }
+}
+
 // ─────────────────────────────────────────────
 // Request Validation
 // Creates a ValidationRequest entry and links it
@@ -365,11 +395,18 @@ pub fn check_quorum(input: CheckQuorumInput) -> ExternResult<QuorumResult> {
     if let Some(record) = get(input.request_hash, GetOptions::default())? {
         if let Some(entry) = record.entry().as_option() {
             if let Ok(request) = ValidationRequest::try_from(entry) {
-                submit_attestation_to_registry(
+                // Bridge 1 — submit attestation to Registry
+                let attestation_hash = submit_attestation_to_registry(
                     request.manifest_hash,
                     quorum_blob,
-                    registry_cell_id,
+                    registry_cell_id.clone(),
                 ).ok();
+
+                // Bridge 2 — notify Mutual Credit to increment
+                // attestation count and trigger Fibonacci if threshold crossed
+                if let Some(att_hash) = attestation_hash {
+                    notify_mutual_credit(att_hash, registry_cell_id).ok();
+                }
             }
         }
     }
