@@ -168,7 +168,7 @@ html { background: var(--bg); color: var(--text); font-family: var(--sans); font
     </nav>
     <div class="sidebar-foot">
       <div class="s-status"><span class="s-dot"></span>conductor connected</div>
-      <div class="s-fib">next threshold: 21 attestations</div>
+      <div class="s-fib" id="sidebar-threshold">next threshold: 21 attestations</div>
     </div>
   </aside>
 
@@ -298,10 +298,10 @@ html { background: var(--bg); color: var(--text); font-family: var(--sans); font
       <div class="ptitle">Network state</div>
       <div class="psub">live φ-derived parameters — none are chosen, all are forced</div>
       <div class="stats" style="grid-template-columns:1fr 1fr 1fr 1fr; margin-bottom:20px;">
-        <div class="scard"><div class="sk">validators</div><div class="sv">8</div></div>
-        <div class="scard"><div class="sk">attestations</div><div class="sv">13</div></div>
-        <div class="scard"><div class="sk">credit supply</div><div class="sv">1618</div></div>
-        <div class="scard"><div class="sk">next threshold</div><div class="sv">21</div></div>
+        <div class="scard"><div class="sk">validators</div><div class="sv" id="net-validators">8</div></div>
+        <div class="scard"><div class="sk">attestations</div><div class="sv" id="net-attestations">—</div></div>
+        <div class="scard"><div class="sk">credit supply</div><div class="sv" id="net-credits">—</div></div>
+        <div class="scard"><div class="sk">next threshold</div><div class="sv" id="net-threshold">—</div></div>
       </div>
       <div class="rcard" style="margin-bottom:11px;">
         <div class="ch" style="border-bottom:none; padding-bottom:12px;"><div class="ctitle">φ-derived constants</div></div>
@@ -497,6 +497,25 @@ async function submitManifest() {
     toast('api error: ' + e.message, false);
   }
 }
+
+async function loadNetworkState() {
+  try {
+    const res = await fetch(API + '/network/state');
+    const state = await res.json();
+    if (state.error) return;
+    document.getElementById('net-validators').textContent = '8';
+    document.getElementById('net-attestations').textContent = state.attestation_count;
+    document.getElementById('net-credits').textContent = state.credit_supply.toLocaleString();
+    document.getElementById('net-threshold').textContent = state.next_fibonacci_threshold;
+    document.getElementById('net-cycle').textContent = state.cycle;
+    document.getElementById('sidebar-threshold').textContent = 'next threshold: ' + state.next_fibonacci_threshold + ' attestations';
+  } catch(e) {
+    console.log('network state error:', e.message);
+  }
+}
+
+loadNetworkState();
+setInterval(loadNetworkState, 5000);
 
 function verdict(id, v) {
   const card = document.getElementById(id);

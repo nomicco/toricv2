@@ -29,8 +29,18 @@ async function connect() {
     const registryCell = poiApp.cell_info["registry"][0].value;
     cellId = registryCell.cell_id;
 
-    // Authorize signing credentials for this cell
-    await adminWs.authorizeSigningCredentials(cellId);
+    // Authorize signing credentials for all cells
+    const allCells = [];
+    for (const role of Object.values(poiApp.cell_info)) {
+      for (const cell of role) {
+        if (cell.value && cell.value.cell_id) {
+          allCells.push(cell.value.cell_id);
+        }
+      }
+    }
+    for (const cid of allCells) {
+      await adminWs.authorizeSigningCredentials(cid);
+    }
 
     const issued = await adminWs.issueAppAuthenticationToken({
       installed_app_id: APP_ID,
@@ -183,4 +193,27 @@ connect();
 
 app.listen(API_PORT, () => {
   console.log(`POI API running on http://localhost:${API_PORT}`);
+});
+
+// Get network state from Mutual Credit DNA
+app.get("/network/state", async (req, res) => {
+  try {
+    const appInfo = await appWs.appInfo();
+    const cell = appInfo.cell_info["mutual_credit"][0].value;
+    const state = await appWs.callZome({
+      cell_id: cell.cell_id,
+      zome_name: "mutual_credit",
+      fn_name: "get_network_state",
+      payload: null,
+      provenance: cell.cell_id[1],
+    });
+    res.json(state || {
+      attestation_count: 0,
+      next_fibonacci_threshold: 21,
+      credit_supply: 1000,
+      cycle: 0,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
