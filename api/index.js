@@ -3,6 +3,8 @@ import express from "express";
 
 const app = express();
 app.use(express.json());
+import cors from 'cors';
+app.use(cors());
 
 const ADMIN_PORT = parseInt(process.env.ADMIN_PORT || "44121");
 const APP_PORT = parseInt(process.env.APP_PORT || "37351");
