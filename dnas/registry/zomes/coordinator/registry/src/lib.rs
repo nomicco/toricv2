@@ -10,11 +10,6 @@ use registry_integrity::{
 pub mod blobs;
 use blobs::*;
 
-// ─────────────────────────────────────────────
-// Module-level φ constants
-// All functions use these — no local redeclarations
-// ─────────────────────────────────────────────
-
 const PHI: f64     = 1.6180339887498948;
 const PHI_SQ: f64  = 2.6180339887498948;
 const INV_PHI: f64  = 0.6180339887498948;
@@ -564,7 +559,7 @@ pub fn apply_reveal_penalty(input: RevealPenaltyInput) -> ExternResult<()> {
             } else { (0, 0, 0, 0, 0, 0) }
         } else { (0, 0, 0, 0, 0, 0) };
 
-    let current_score = prev_wc -l ~/projects/toric/dnas/registry/zomes/coordinator/registry/src/lib.rsscore as f64 / 1_000_000.0;
+    let current_score = prev_score as f64 / 1_000_000.0;
     let penalized_score = (current_score - input.penalty).max(f64::EPSILON);
 
     let cache = ReputationCache {
