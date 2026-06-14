@@ -314,6 +314,16 @@ pub fn request_validation(input: RequestValidationInput) -> ExternResult<ActionH
 
     // Emit signal so validators can respond immediately
     // without waiting for next poll cycle
+    let global_path = Path::from("validation_requests.all");
+    let global_typed = global_path.typed(LinkTypes::GlobalValidationRequestAnchor)?;
+    global_typed.ensure()?;
+    create_link(
+        global_typed.path_entry_hash()?,
+        action_hash.clone(),
+        LinkTypes::GlobalValidationRequestAnchor,
+        (),
+    )?;
+
     emit_signal(Signal::ValidationRequested {
         request_hash: action_hash.clone(),
     })?;
@@ -803,6 +813,29 @@ pub fn get_pending_requests(agent: AgentPubKey) -> ExternResult<Vec<Record>> {
     for link in links {
         if let Some(action_hash) = link.target.into_action_hash() {
             if let Some(record) = get(action_hash, GetOptions::default())? {
+                records.push(record);
+            }
+        }
+    }
+    Ok(records)
+}
+
+#[hdk_extern]
+pub fn get_all_pending_requests(_: ()) -> ExternResult<Vec<Record>> {
+    let path = Path::from("validation_requests.all");
+    let typed = path.typed(LinkTypes::GlobalValidationRequestAnchor)?;
+    if !typed.exists()? {
+        return Ok(vec![]);
+    }
+    let links = fetch_links(typed.path_entry_hash()?, LinkTypes::GlobalValidationRequestAnchor)?;
+    let mut records = Vec::new();
+    for link in links {
+        if let Some(hash) = link.target.into_action_hash() {
+            let quorum_links = fetch_links(hash.clone(), LinkTypes::RequestToQuorum)?;
+            if !quorum_links.is_empty() {
+                continue;
+            }
+            if let Some(record) = get(hash, GetOptions::default())? {
                 records.push(record);
             }
         }
